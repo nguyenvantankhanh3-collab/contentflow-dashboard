@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ContentFlow V2 — Hệ thống tạo & đăng video AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#0A0A0C;--s1:#141416;--s2:#1C1C20;--s3:#242428;
+  --b1:rgba(255,255,255,0.06);--b2:rgba(255,255,255,0.1);--b3:rgba(255,255,255,0.16);
+  --t1:#F2F1EC;--t2:#A8A7A2;--t3:#686762;
+  --acc:#7C5CFC;--acc2:#9B80FF;--acc3:rgba(124,92,252,0.15);
+  --teal:#00D4AA;--teal2:rgba(0,212,170,0.15);
+  --amber:#F5A623;--amb2:rgba(245,166,35,0.15);
+  --coral:#F06A50;--cor2:rgba(240,106,80,0.15);
+  --green:#34C97A;--gr2:rgba(52,201,122,0.15);
+  --r:10px;--rsm:6px;--font:'Inter',system-ui,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--t1);font-family:var(--font);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--b3);border-radius:2px;}
+
+/* Layout */
+.app{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+.sidebar{background:var(--s1);border-right:1px solid var(--b1);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.main{overflow-x:hidden;background:var(--bg);}
+.page{display:none;padding:28px 32px;}
+.page.active{display:block;}
+
+/* Sidebar */
+.logo{padding:20px 18px 18px;border-bottom:1px solid var(--b1);}
+.logo-mark{font-size:18px;font-weight:700;color:var(--t1);letter-spacing:-0.02em;}
+.logo-mark span{color:var(--acc2);}
+.logo-sub{font-size:11px;color:var(--t3);margin-top:2px;}
+.nav-sec{padding:14px 10px 6px;}
+.nav-lbl{font-size:10px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.08em;padding:0 8px;margin-bottom:4px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--rsm);cursor:pointer;color:var(--t2);font-size:13px;font-weight:500;transition:all .15s;border:none;background:none;width:100%;text-align:left;}
+.nav-item:hover{background:var(--s2);color:var(--t1);}
+.nav-item.active{background:var(--acc3);color:var(--acc2);}
+.nav-icon{font-size:15px;width:18px;text-align:center;flex-shrink:0;}
+.nav-badge{margin-left:auto;background:var(--acc);color:#fff;font-size:10px;padding:1px 6px;border-radius:20px;font-weight:600;}
+.sidebar-footer{margin-top:auto;padding:14px 18px;border-top:1px solid var(--b1);}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;margin-right:5px;}
+
+/* Header */
+.ph{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:24px;gap:16px;}
+.ph-title{font-size:20px;font-weight:700;letter-spacing:-.02em;}
+.ph-sub{font-size:13px;color:var(--t2);margin-top:3px;}
+
+/* Buttons */
+.btn{padding:8px 16px;border-radius:var(--rsm);font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .15s;font-family:var(--font);}
+.btn-primary{background:var(--acc);color:#fff;}
+.btn-primary:hover{background:var(--acc2);}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;}
+.btn-ghost{background:transparent;border:1px solid var(--b2);color:var(--t1);}
+.btn-ghost:hover{background:var(--s2);}
+.btn-teal{background:var(--teal);color:#000;font-weight:600;}
+.btn-teal:hover{opacity:.9;}
+
+/* Cards */
+.card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:18px 20px;}
+.card-title{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.card-title-l{display:flex;align-items:center;gap:8px;}
+
+/* Stats */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.stat{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px 18px;}
+.stat-lbl{font-size:11px;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px;}
+.stat-val{font-size:24px;font-weight:700;letter-spacing:-.02em;}
+.stat-ch{font-size:11px;margin-top:3px;}
+.up{color:var(--green);}
+.down{color:var(--coral);}
+
+/* Grid */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.g3{display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px;}
+.g13{display:grid;grid-template-columns:1fr 3fr;gap:16px;}
+
+/* Forms */
+.fg{margin-bottom:12px;}
+.fl{font-size:11px;font-weight:500;color:var(--t2);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;}
+.fi{width:100%;background:var(--s2);border:1px solid var(--b2);color:var(--t1);border-radius:var(--rsm);padding:8px 11px;font-size:13px;font-family:var(--font);outline:none;transition:border .15s;}
+.fi:focus{border-color:var(--acc);}
+.fi::placeholder{color:var(--t3);}
+textarea.fi{resize:vertical;min-height:72px;line-height:1.5;}
+select.fi{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%2368676280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer;}
+
+/* Workflow cards */
+.wf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.wf-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;}
+.wf-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--acc);opacity:0;transition:opacity .2s;}
+.wf-card:hover{border-color:var(--b2);transform:translateY(-1px);}
+.wf-card:hover::before{opacity:1;}
+.wf-card.active-wf{border-color:var(--acc);background:var(--acc3);}
+.wf-card.active-wf::before{opacity:1;}
+.wf-icon{font-size:24px;margin-bottom:8px;}
+.wf-name{font-size:13px;font-weight:600;margin-bottom:4px;}
+.wf-desc{font-size:12px;color:var(--t2);line-height:1.5;}
+.wf-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:8px;}
+.tag{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:500;}
+.tag-free{background:var(--gr2);color:var(--green);}
+.tag-plat{background:var(--s3);color:var(--t2);}
+
+/* Workflow detail */
+.wf-detail{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r);padding:20px;}
+.wf-steps{margin-top:14px;}
+.wf-step{display:flex;gap:14px;padding:12px 0;border-bottom:1px solid var(--b1);}
+.wf-step:last-child{border-bottom:none;}
+.wf-step-num{width:28px;height:28px;border-radius:50%;background:var(--acc3);color:var(--acc2);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.wf-step-body{flex:1;}
+.wf-step-title{font-size:13px;font-weight:600;margin-bottom:4px;}
+.wf-step-desc{font-size:12px;color:var(--t2);line-height:1.6;}
+.wf-step-tool{display:inline-flex;align-items:center;gap:4px;font-size:11px;background:var(--s3);color:var(--acc2);padding:2px 8px;border-radius:20px;margin-top:5px;}
+.wf-step-link{font-size:11px;color:var(--teal);text-decoration:none;margin-top:4px;display:inline-block;}
+
+/* Script output */
+.script-block{background:var(--s2);border:1px solid var(--b1);border-radius:var(--rsm);padding:12px 14px;margin-bottom:8px;}
+.script-tag{font-size:10px;font-weight:600;color:var(--acc2);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px;}
+.script-txt{font-size:13px;line-height:1.7;white-space:pre-wrap;}
+.hashtag{display:inline-block;background:var(--acc3);color:var(--acc2);font-size:11px;padding:2px 7px;border-radius:20px;margin:2px 2px 0 0;}
+
+/* Checklist */
+.checklist{list-style:none;}
+.checklist li{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--b1);font-size:13px;cursor:pointer;}
+.checklist li:last-child{border-bottom:none;}
+.check-box{width:18px;height:18px;border-radius:4px;border:1.5px solid var(--b3);flex-shrink:0;display:flex;align-items:center;justify-content:center;margin-top:1px;transition:all .15s;}
+.check-box.checked{background:var(--green);border-color:var(--green);color:#000;font-size:11px;font-weight:700;}
+
+/* Queue */
+.q-item{display:flex;align-items:flex-start;gap:12px;padding:12px 0;border-bottom:1px solid var(--b1);}
+.q-item:last-child{border-bottom:none;padding-bottom:0;}
+.q-thumb{width:48px;height:48px;border-radius:var(--rsm);background:var(--s2);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.q-info{flex:1;min-width:0;}
+.q-title{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.q-meta{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:3px;}
+.q-actions{display:flex;gap:5px;flex-shrink:0;}
+.icon-btn{width:28px;height:28px;border-radius:var(--rsm);border:1px solid var(--b2);background:transparent;color:var(--t2);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .15s;}
+.icon-btn:hover{background:var(--s2);color:var(--t1);}
+
+/* Platform badges */
+.plat{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:500;padding:2px 7px;border-radius:20px;}
+.pt{background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);color:#fff;}
+.py{background:rgba(255,0,0,.12);border:1px solid rgba(255,0,0,.25);color:#FF6B6B;}
+.pf{background:rgba(24,119,242,.12);border:1px solid rgba(24,119,242,.25);color:#5B9BF5;}
+.pi{background:rgba(225,48,108,.12);border:1px solid rgba(225,48,108,.25);color:#E1306C;}
+
+/* Plat selector */
+.plat-sel{display:flex;gap:7px;flex-wrap:wrap;}
+.plat-opt{padding:6px 12px;border-radius:var(--rsm);border:1px solid var(--b2);cursor:pointer;font-size:12px;font-weight:500;color:var(--t2);transition:all .15s;user-select:none;}
+.plat-opt:hover{border-color:var(--b3);color:var(--t1);}
+.plat-opt.sel-tt{border-color:rgba(255,255,255,.35);background:rgba(255,255,255,.07);color:#fff;}
+.plat-opt.sel-yt{border-color:rgba(255,0,0,.4);background:rgba(255,0,0,.1);color:#FF6B6B;}
+.plat-opt.sel-fb{border-color:rgba(24,119,242,.4);background:rgba(24,119,242,.1);color:#5B9BF5;}
+.plat-opt.sel-ig{border-color:rgba(225,48,108,.4);background:rgba(225,48,108,.1);color:#E1306C;}
+
+/* Loading */
+.load-bar{height:2px;background:linear-gradient(90deg,var(--acc),var(--teal));border-radius:2px;display:none;}
+.load-bar.show{display:block;animation:lb 1.5s ease-in-out infinite;}
+@keyframes lb{0%,100%{width:0;margin-left:0}50%{width:60%;margin-left:20%}}
+.spin{animation:spin 1s linear infinite;display:inline-block;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Notification */
+.notif{position:fixed;bottom:20px;right:20px;background:var(--s1);border:1px solid var(--b2);border-radius:var(--r);padding:12px 16px;font-size:13px;z-index:999;display:none;max-width:300px;box-shadow:0 8px 30px rgba(0,0,0,.5);gap:10px;align-items:center;}
+.notif.show{display:flex;}
+
+/* Tracker */
+.tracker-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1);}
+.tracker-row:last-child{border-bottom:none;}
+.tr-icon{font-size:20px;width:36px;height:36px;background:var(--s2);border-radius:var(--rsm);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.tr-info{flex:1;}
+.tr-name{font-size:13px;font-weight:500;}
+.tr-sub{font-size:11px;color:var(--t2);}
+.tr-val{font-size:14px;font-weight:600;color:var(--green);}
+
+/* Library */
+.lib-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.lib-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:14px;}
+.lib-cat{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--t3);margin-bottom:6px;}
+.lib-prod{font-size:13px;font-weight:500;margin-bottom:3px;}
+.lib-comm{font-size:12px;color:var(--green);font-weight:600;}
+.lib-note{font-size:11px;color:var(--t2);margin-top:4px;}
+
+/* Calendar */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;}
+.cal-day-lbl{font-size:10px;font-weight:500;color:var(--t3);text-align:center;text-transform:uppercase;letter-spacing:.05em;padding-bottom:6px;}
+.cal-cell{background:var(--s2);border-radius:var(--rsm);padding:8px;border:1px solid var(--b1);min-height:80px;}
+.cal-cell.today{border-color:var(--acc);background:var(--acc3);}
+.cal-date{font-size:10px;color:var(--t3);margin-bottom:5px;}
+.cal-date.today-lbl{color:var(--acc2);font-weight:600;}
+.cal-event{font-size:10px;padding:2px 6px;border-radius:3px;margin-bottom:3px;}
+.cal-ev-posted{background:var(--gr2);color:var(--green);}
+.cal-ev-sched{background:var(--acc3);color:var(--acc2);}
+
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--s2);border-radius:var(--rsm);padding:3px;width:fit-content;margin-bottom:16px;}
+.tab{padding:6px 14px;border-radius:5px;font-size:12px;font-weight:500;cursor:pointer;color:var(--t2);border:none;background:none;transition:all .15s;font-family:var(--font);}
+.tab.active{background:var(--s1);color:var(--t1);box-shadow:0 1px 4px rgba(0,0,0,.4);}
+
+/* Progress bar */
+.prog-wrap{background:var(--s3);border-radius:20px;height:4px;margin-top:4px;}
+.prog-bar{height:4px;border-radius:20px;background:linear-gradient(90deg,var(--acc),var(--teal));transition:width .3s;}
+
+/* Channel cards */
+.ch-card{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r);padding:14px 16px;margin-bottom:10px;}
+
+/* Tips box */
+.tip-box{background:var(--amb2);border:1px solid rgba(245,166,35,.25);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--amber);margin-top:8px;line-height:1.6;}
+.info-box{background:var(--acc3);border:1px solid rgba(124,92,252,.25);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--acc2);margin-top:8px;line-height:1.6;}
+.success-box{background:var(--gr2);border:1px solid rgba(52,201,122,.25);border-radius:var(--rsm);padding:10px 13px;font-size:12px;color:var(--green);margin-top:8px;line-height:1.6;}
+
+/* Capcut guide steps */
+.capcut-steps{counter-reset:cc;}
+.capcut-step{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--b1);}
+.capcut-step:last-child{border-bottom:none;}
+.cc-num{width:24px;height:24px;border-radius:50%;background:var(--teal2);color:var(--teal);font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.cc-title{font-size:13px;font-weight:600;margin-bottom:3px;}
+.cc-desc{font-size:12px;color:var(--t2);line-height:1.6;}
+
+/* Responsive helper */
+@media(max-width:900px){
+  .app{grid-template-columns:1fr;}
+  .sidebar{display:none;}
+  .stats-row{grid-template-columns:repeat(2,1fr);}
+  .wf-grid{grid-template-columns:repeat(2,1fr);}
+  .g2,.g3,.g13{grid-template-columns:1fr;}
+  .lib-grid{grid-template-columns:repeat(2,1fr);}
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar">
+  <div class="logo">
+    <div class="logo-mark">Content<span>Flow</span></div>
+    <div class="logo-sub">AI · TikTok · YouTube · Facebook</div>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Tổng quan</div>
+    <button class="nav-item active" onclick="P('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</button>
+    <button class="nav-item" onclick="P('channels',this)"><span class="nav-icon">📡</span>Kênh của anh</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Tạo nội dung</div>
+    <button class="nav-item" onclick="P('create',this)"><span class="nav-icon">✨</span>Tạo video AI</button>
+    <button class="nav-item" onclick="P('script',this)"><span class="nav-icon">📝</span>Kịch bản AI</button>
+    <button class="nav-item" onclick="P('capcut',this)"><span class="nav-icon">🎬</span>Hướng dẫn CapCut</button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Workflow</div>
+    <button class="nav-item" onclick="P('workflow',this)"><span class="nav-icon">⚡</span>10 Workflow miễn phí<span class="nav-badge">10</span></button>
+  </div>
+  <div class="nav-sec">
+    <div class="nav-lbl">Quản lý</div>
+    <button class="nav-item" onclick="P('queue',this)"><span class="nav-icon">🗂️</span>Hàng chờ<span class="nav-badge" id="qbadge">3</span></button>
+    <button class="nav-item" onclick="P('schedule',this)"><span class="nav-icon">📅</span>Lịch đăng</button>
+    <button class="nav-item" onclick="P('tracker',this)"><span class="nav-icon">💰</span>Tracker hoa hồng</button>
+    <button class="nav-item" onclick="P('library',this)"><span class="nav-icon">🛍️</span>Thư viện sản phẩm</button>
+  </div>
+  <div class="sidebar-footer">
+    <div style="font-size:11px;color:var(--t3);margin-bottom:4px;">ContentFlow V2</div>
+    <div style="font-size:12px;color:var(--t2);display:flex;align-items:center;"><span class="status-dot"></span>Claude AI đang hoạt động</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main>
+
+<!-- DASHBOARD -->
+<div id="page-dashboard" class="page active">
+  <div class="ph">
+    <div><div class="ph-title">Xin chào! 👋</div><div class="ph-sub">Thứ tư, 18/6/2026 — Tổng quan hệ thống</div></div>
+    <button class="btn btn-primary" onclick="P('create',null)">+ Tạo video mới</button>
+  </div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-lbl">Video tuần này</div><div class="stat-val">14</div><div class="stat-ch up">↑ 6 so với tuần trước</div></div>
+    <div class="stat"><div class="stat-lbl">Chờ đăng</div><div class="stat-val" id="sq">3</div><div class="stat-ch" style="color:var(--t3)">Gần nhất: 19:00 tối nay</div></div>
+    <div class="stat"><div class="stat-lbl">Hoa hồng tháng này</div><div class="stat-val" style="color:var(--green)">0đ</div><div class="stat-ch" style="color:var(--t3)">Bắt đầu theo dõi</div></div>
+    <div class="stat"><div class="stat-lbl">Kênh hoạt động</div><div class="stat-val">2</div><div class="stat-ch" style="color:var(--t3)">TikTok · Facebook</div></div>
+  </div>
+  <div class="g3">
+    <div class="card">
+      <div class="card-title"><div class="card-title-l">🗂️ Hàng chờ hôm nay</div><button class="btn btn-ghost" onclick="P('queue',null)" style="font-size:11px;padding:4px 10px;">Xem tất cả</button></div>
+      <div id="dash-queue"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">⚡ Bắt đầu nhanh</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn btn-primary" onclick="P('create',null)" style="width:100%;text-align:left;padding:10px 14px;">✨ Tạo video affiliate mới</button>
+        <button class="btn btn-ghost" onclick="P('script',null)" style="width:100%;text-align:left;padding:10px 14px;">📝 Viết kịch bản nhanh</button>
+        <button class="btn btn-ghost" onclick="P('workflow',null)" style="width:100%;text-align:left;padding:10px 14px;">⚡ Xem 10 workflow</button>
+        <button class="btn btn-ghost" onclick="P('library',null)" style="width:100%;text-align:left;padding:10px 14px;">🛍️ Tìm sản phẩm hot</button>
+        <button class="btn btn-ghost" onclick="P('capcut',null)" style="width:100%;text-align:left;padding:10px 14px;">🎬 Hướng dẫn tạo video</button>
+      </div>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">📅 Lịch tuần này</div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:6px;">
+        <div style="font-size:10px;color:var(--t3);text-align:center;">T2</div><div style="font-size:10px;color:var(--t3);text-align:center;">T3</div><div style="font-size:10px;color:var(--t3);text-align:center;color:var(--acc2);font-weight:600;">T4</div><div style="font-size:10px;color:var(--t3);text-align:center;">T5</div><div style="font-size:10px;color:var(--t3);text-align:center;">T6</div><div style="font-size:10px;color:var(--t3);text-align:center;">T7</div><div style="font-size:10px;color:var(--t3);text-align:center;">CN</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;">
+        <div style="aspect-ratio:1;border-radius:5px;background:var(--gr2);color:var(--green);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;">✓</div>
+        <div style="aspect-ratio:1;border-radius:5px;background:var(--gr2);color:var(--green);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;">✓</div>
+        <div style="aspect-ratio:1;border-radius:5px;background:var(--acc3);color:var(--acc2);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;border:1px solid rgba(124,92,252,.3);">19h</div>
+        <div style="aspect-ratio:1;border-radius:5px;background:var(--acc3);color:var(--acc2);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;">20h</div>
+        <div style="aspect-ratio:1;border-radius:5px;border:1px dashed var(--b2);color:var(--t3);font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="N('Thêm video cho thứ 6!')">+</div>
+        <div style="aspect-ratio:1;border-radius:5px;background:var(--acc3);color:var(--acc2);font-size:9px;font-weight:700;display:flex;align-items:center;justify-content:center;">18h</div>
+        <div style="aspect-ratio:1;border-radius:5px;border:1px dashed var(--b2);color:var(--t3);font-size:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;" onclick="N('Thêm video Chủ nhật!')">+</div>
+      </div>
+      <div style="display:flex;gap:12px;margin-top:10px;font-size:11px;color:var(--t3);">
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--green);margin-right:4px;"></span>Đã đăng</span>
+        <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--acc);margin-right:4px;"></span>Lên lịch</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 Tips hôm nay</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div class="info-box">🕖 Giờ vàng đăng TikTok: 19:00–21:00 và 6:00–8:00 sáng</div>
+        <div class="tip-box">🔥 Sản phẩm hot tuần này: kem dưỡng da, máy massage, thực phẩm chức năng</div>
+        <div class="success-box">✅ Mục tiêu: 2–3 video/ngày × 7 ngày = 14–21 video/tuần</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORKFLOW PAGE -->
+<div id="page-workflow" class="page">
+  <div class="ph">
+    <div><div class="ph-title">⚡ 10 Workflow miễn phí</div><div class="ph-sub">Chọn workflow → xem hướng dẫn chi tiết → bắt đầu ngay</div></div>
+  </div>
+  <div class="wf-grid" id="wf-grid"></div>
+  <div id="wf-detail" style="margin-top:16px;display:none;"></div>
+</div>
+
+<!-- CREATE VIDEO -->
+<div id="page-create" class="page">
+  <div class="ph">
+    <div><div class="ph-title">✨ Tạo video AI</div><div class="ph-sub">Nhập thông tin → AI tạo kịch bản → hướng dẫn làm video → lên lịch đăng</div></div>
+  </div>
+  <div class="g13">
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title">Thông tin sản phẩm</div>
+        <div class="fg"><label class="fl">Tên sản phẩm *</label><input id="v-prod" class="fi" placeholder="VD: Kem dưỡng da collagen XYZ"/></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="fg"><label class="fl">Giá gốc</label><input id="v-orig" class="fi" placeholder="500.000đ"/></div>
+          <div class="fg"><label class="fl">Giá sale</label><input id="v-sale" class="fi" placeholder="299.000đ"/></div>
+        </div>
+        <div class="fg"><label class="fl">Điểm nổi bật (3–5 tính năng)</label><textarea id="v-feat" class="fi" placeholder="Dưỡng ẩm 24h, không nhờn, da sáng sau 7 ngày..."></textarea></div>
+        <div class="fg"><label class="fl">Phong cách</label>
+          <select id="v-style" class="fi">
+            <option value="hook">Hook mạnh — gây tò mò 3 giây đầu</option>
+            <option value="review">Review chân thực — trải nghiệm thật</option>
+            <option value="story">Kể chuyện — vấn đề → giải pháp</option>
+            <option value="compare">So sánh trước - sau</option>
+            <option value="tutorial">Hướng dẫn sử dụng</option>
+            <option value="urgency">Flash sale — tạo urgency</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Nền tảng đăng</label>
+          <div class="plat-sel">
+            <div class="plat-opt sel-tt" onclick="tP(this,'tt')">🎵 TikTok</div>
+            <div class="plat-opt" onclick="tP(this,'yt')">▶️ YouTube</div>
+            <div class="plat-opt sel-fb" onclick="tP(this,'fb')">📘 Facebook</div>
+            <div class="plat-opt" onclick="tP(this,'ig')">📸 Instagram</div>
+          </div>
+        </div>
+        <div class="fg"><label class="fl">Giờ đăng</label><input id="v-time" class="fi" type="time" value="19:00"/></div>
+        <div class="load-bar" id="cl"></div>
+        <button class="btn btn-primary" id="cbtn" onclick="createV()" style="width:100%;margin-top:4px;padding:10px;">✨ Tạo kịch bản ngay</button>
+      </div>
+    </div>
+    <div id="create-out" class="card" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+      <div style="text-align:center;color:var(--t3);">
+        <div style="font-size:40px;margin-bottom:12px;">🎬</div>
+        <div style="font-size:13px;line-height:1.7;">Điền thông tin sản phẩm<br>bấm <strong style="color:var(--t1);">Tạo kịch bản ngay</strong><br>AI sẽ viết toàn bộ cho anh</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPT PAGE -->
+<div id="page-script" class="page">
+  <div class="ph"><div><div class="ph-title">📝 Kịch bản AI</div><div class="ph-sub">Viết kịch bản TikTok chuyên nghiệp — hook, nội dung, CTA, caption, hashtag</div></div></div>
+  <div class="g13">
+    <div class="card">
+      <div class="fg"><label class="fl">Sản phẩm / chủ đề *</label><input id="s-prod" class="fi" placeholder="VD: Máy massage cổ vai gáy"/></div>
+      <div class="fg"><label class="fl">Giá / khuyến mãi</label><input id="s-price" class="fi" placeholder="VD: Giảm 40% còn 299k"/></div>
+      <div class="fg"><label class="fl">Tính năng nổi bật</label><textarea id="s-feat" class="fi" placeholder="Liệt kê 3–5 điểm mạnh..."></textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><label class="fl">Phong cách</label>
+          <select id="s-style" class="fi">
+            <option>Hook mạnh</option><option>Review thật</option><option>Kể chuyện</option><option>So sánh</option><option>Tutorial</option><option>Flash sale</option>
+          </select>
+        </div>
+        <div class="fg"><label class="fl">Độ dài</label>
+          <select id="s-dur" class="fi"><option>15 giây</option><option selected>30 giây</option><option>60 giây</option></select>
+        </div>
+      </div>
+      <div class="fg"><label class="fl">Ngành hàng</label>
+        <select id="s-niche" class="fi">
+          <option>Làm đẹp / skincare</option><option>Sức khỏe / thực phẩm</option><option>Gia dụng / nhà cửa</option><option>Thời trang / phụ kiện</option><option>Công nghệ / đồ điện tử</option><option>Mẹ &amp; bé</option><option>Đồ ăn / thức uống</option>
+        </select>
+      </div>
+      <div class="load-bar" id="sl"></div>
+      <button class="btn btn-primary" onclick="genScript()" style="width:100%;padding:10px;">✍️ Viết kịch bản</button>
+    </div>
+    <div id="script-out" class="card" style="display:flex;align-items:center;justify-content:center;min-height:400px;">
+      <div style="text-align:center;color:var(--t3);"><div style="font-size:40px;margin-bottom:12px;">✍️</div><div>Kịch bản hiện ra ở đây</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- CAPCUT GUIDE -->
+<div id="page-capcut" class="page">
+  <div class="ph"><div><div class="ph-title">🎬 Hướng dẫn tạo video bằng CapCut AI</div><div class="ph-sub">Miễn phí — từ kịch bản → video hoàn chỉnh trong 10 phút</div></div></div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">📱 Cách 1 — CapCut trên điện thoại (Dễ nhất)</div>
+      <div class="capcut-steps">
+        <div class="capcut-step"><div class="cc-num">1</div><div><div class="cc-title">Tải CapCut miễn phí</div><div class="cc-desc">Vào App Store hoặc CH Play → tìm "CapCut" → tải về → đăng nhập bằng TikTok</div></div></div>
+        <div class="capcut-step"><div class="cc-num">2</div><div><div class="cc-title">Chọn "Script to Video"</div><div class="cc-desc">Mở CapCut → bấm dấu + → chọn <strong>"Script to Video"</strong> hoặc <strong>"AI Video"</strong> → paste kịch bản đã tạo ở trang Kịch bản AI vào đây</div></div></div>
+        <div class="capcut-step"><div class="cc-num">3</div><div><div class="cc-title">Chọn giọng đọc AI tiếng Việt</div><div class="cc-desc">CapCut tự động tạo voiceover → chọn giọng "Việt Nam" → nghe thử và chọn giọng phù hợp nhất</div></div></div>
+        <div class="capcut-step"><div class="cc-num">4</div><div><div class="cc-title">Chọn template video</div><div class="cc-desc">CapCut gợi ý nhiều template có sẵn → chọn template phù hợp với ngành hàng → CapCut tự ghép ảnh/clip sản phẩm</div></div></div>
+        <div class="capcut-step"><div class="cc-num">5</div><div><div class="cc-title">Thêm ảnh/video sản phẩm</div><div class="cc-desc">Upload 3–5 ảnh sản phẩm rõ nét từ điện thoại → CapCut tự ghép theo kịch bản → chỉnh màu sắc nếu muốn</div></div></div>
+        <div class="capcut-step"><div class="cc-num">6</div><div><div class="cc-title">Thêm subtitle tự động</div><div class="cc-desc">Bấm "Auto Captions" → CapCut tự tạo phụ đề từ voiceover → chỉnh font/màu cho đẹp</div></div></div>
+        <div class="capcut-step"><div class="cc-num">7</div><div><div class="cc-title">Xuất video & đăng TikTok</div><div class="cc-desc">Bấm Export → chọn độ phân giải 1080p → Chia sẻ thẳng lên TikTok ngay từ CapCut → paste caption và hashtag đã tạo</div></div></div>
+      </div>
+      <div class="success-box" style="margin-top:12px;">✅ Toàn bộ quy trình mất 10–15 phút/video sau khi quen</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px;">
+      <div class="card">
+        <div class="card-title">💻 Cách 2 — CapCut trên máy tính</div>
+        <div class="capcut-steps">
+          <div class="capcut-step"><div class="cc-num">1</div><div><div class="cc-title">Tải CapCut PC</div><div class="cc-desc">Vào capcut.com → Download for Windows/Mac → cài miễn phí</div></div></div>
+          <div class="capcut-step"><div class="cc-num">2</div><div><div class="cc-title">Tạo project mới</div><div class="cc-desc">Mở CapCut → New Project → chọn tỉ lệ 9:16 (TikTok) → Import ảnh/video sản phẩm</div></div></div>
+          <div class="capcut-step"><div class="cc-num">3</div><div><div class="cc-title">Dùng Text to Speech</div><div class="cc-desc">Thêm Text → gõ kịch bản → chuột phải → Text to Speech → chọn giọng Việt</div></div></div>
+          <div class="capcut-step"><div class="cc-num">4</div><div><div class="cc-title">Thêm nhạc nền trending</div><div class="cc-desc">Tab Audio → chọn nhạc TikTok trending → kéo vào timeline → giảm âm lượng xuống 20–30%</div></div></div>
+          <div class="capcut-step"><div class="cc-num">5</div><div><div class="cc-title">Export và đăng</div><div class="cc-desc">Export 1080p → đăng lên TikTok Studio → paste caption đã tạo → lên lịch giờ vàng</div></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">🔥 Tips tạo video viral</div>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <div class="tip-box">3 giây đầu phải có hook mạnh — quyết định 80% view</div>
+          <div class="info-box">Dùng nhạc đang trending trên TikTok — tăng reach tự nhiên</div>
+          <div class="success-box">Subtitle rõ ràng — 80% người xem không bật tiếng</div>
+          <div class="tip-box">Video 15–30 giây có tỉ lệ xem hết cao hơn 60 giây</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- QUEUE PAGE -->
+<div id="page-queue" class="page">
+  <div class="ph">
+    <div><div class="ph-title">🗂️ Hàng chờ đăng bài</div><div class="ph-sub">Quản lý tất cả video đã tạo, chờ đăng lên nền tảng</div></div>
+    <button class="btn btn-primary" onclick="P('create',null)">+ Tạo video mới</button>
+  </div>
+  <div class="card"><div id="full-queue"></div></div>
+</div>
+
+<!-- SCHEDULE PAGE -->
+<div id="page-schedule" class="page">
+  <div class="ph"><div><div class="ph-title">📅 Lịch đăng bài</div><div class="ph-sub">Kế hoạch nội dung tuần này — mục tiêu 2–3 video/ngày</div></div></div>
+  <div class="card">
+    <div class="card-title">Tuần 18/6 — 24/6/2026</div>
+    <div class="cal-grid" style="margin-bottom:10px;">
+      <div class="cal-day-lbl">Thứ 2</div><div class="cal-day-lbl">Thứ 3</div><div class="cal-day-lbl" style="color:var(--acc2);">Thứ 4 ●</div><div class="cal-day-lbl">Thứ 5</div><div class="cal-day-lbl">Thứ 6</div><div class="cal-day-lbl">Thứ 7</div><div class="cal-day-lbl">CN</div>
+    </div>
+    <div class="cal-grid">
+      <div class="cal-cell"><div class="cal-date">16/6</div><div class="cal-event cal-ev-posted">✓ 19:00 TT</div><div class="cal-event cal-ev-posted">✓ 21:00 FB</div></div>
+      <div class="cal-cell"><div class="cal-date">17/6</div><div class="cal-event cal-ev-posted">✓ 20:00 TT</div><div class="cal-event cal-ev-posted">✓ 7:00 TT</div></div>
+      <div class="cal-cell today"><div class="cal-date today-lbl">18/6 — Hôm nay</div><div class="cal-event cal-ev-sched">⏰ 19:00 TT</div><div class="cal-event cal-ev-sched">⏰ 20:00 TT</div><div class="cal-event cal-ev-sched">⏰ 21:00 FB</div></div>
+      <div class="cal-cell"><div class="cal-date">19/6</div><div class="cal-event cal-ev-sched">⏰ 19:00 TT</div><div class="cal-event cal-ev-sched">⏰ 21:00 TT</div></div>
+      <div class="cal-cell" style="cursor:pointer;" onclick="N('Thêm video cho 20/6!')"><div class="cal-date">20/6</div><div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center;">+ Thêm</div></div>
+      <div class="cal-cell"><div class="cal-date">21/6</div><div class="cal-event cal-ev-sched">⏰ 18:00 TT</div></div>
+      <div class="cal-cell" style="cursor:pointer;" onclick="N('Thêm video cho CN!')"><div class="cal-date">22/6</div><div style="font-size:11px;color:var(--t3);margin-top:8px;text-align:center;">+ Thêm</div></div>
+    </div>
+    <div class="info-box" style="margin-top:12px;">💡 Giờ vàng đăng TikTok tại VN: 6–8 sáng, 11–13 trưa, 19–22 tối — đặc biệt thứ 5 đến Chủ nhật</div>
+  </div>
+</div>
+
+<!-- TRACKER -->
+<div id="page-tracker" class="page">
+  <div class="ph"><div><div class="ph-title">💰 Tracker hoa hồng affiliate</div><div class="ph-sub">Theo dõi thu nhập từ TikTok Shop, Shopee, Lazada</div></div></div>
+  <div class="stats-row">
+    <div class="stat"><div class="stat-lbl">Tháng này</div><div class="stat-val" style="color:var(--green)" id="tr-month">0đ</div><div class="stat-ch" style="color:var(--t3)">Chưa có đơn</div></div>
+    <div class="stat"><div class="stat-lbl">Tổng cộng</div><div class="stat-val" id="tr-total">0đ</div></div>
+    <div class="stat"><div class="stat-lbl">Đơn tháng này</div><div class="stat-val" id="tr-orders">0</div></div>
+    <div class="stat"><div class="stat-lbl">Nền tảng tốt nhất</div><div class="stat-val" style="font-size:16px;" id="tr-best">—</div></div>
+  </div>
+  <div class="g2">
+    <div class="card">
+      <div class="card-title">+ Thêm hoa hồng mới</div>
+      <div class="fg"><label class="fl">Nền tảng</label>
+        <select id="tr-plat" class="fi"><option>TikTok Shop</option><option>Shopee Affiliate</option><option>Lazada Affiliate</option><option>Tiki</option></select>
+      </div>
+      <div class="fg"><label class="fl">Tên sản phẩm</label><input id="tr-prod" class="fi" placeholder="VD: Kem dưỡng da XYZ"/></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div class="fg"><label class="fl">Số tiền (đ)</label><input id="tr-amt" class="fi" type="number" placeholder="150000"/></div>
+        <div class="fg"><label class="fl">Ngày</label><input id="tr-date" class="fi" type="date"/></div>
+      </div>
+      <button class="btn btn-teal" onclick="addTracker()" style="width:100%;">+ Thêm vào tracker</button>
+    </div>
+    <div class="card">
+      <div class="card-title">Lịch sử hoa hồng</div>
+      <div id="tr-list"><div style="text-align:center;color:var(--t3);padding:24px;font-size:13px;">Chưa có dữ liệu — thêm hoa hồng đầu tiên!</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title">🎯 Mục tiêu thu nhập</div>
+    <div class="g2">
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Tuần 1–2: Làm quen, 0–500k</div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--t2);margin-top:4px;">Tạo 14 video → nhận link affiliate → đăng đều đặn</div>
+      </div>
+      <div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:8px;">Tuần 3–4: Tối ưu, 500k–2tr</div>
+        <div class="prog-wrap"><div class="prog-bar" style="width:0%"></div></div>
+        <div style="font-size:12px;color:var(--t2);margin-top:4px;">Nhân bản video viral → tăng tần suất đăng</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LIBRARY -->
+<div id="page-library" class="page">
+  <div class="ph"><div><div class="ph-title">🛍️ Thư viện sản phẩm hot</div><div class="ph-sub">Sản phẩm affiliate bán chạy nhất tháng 6/2026 — hoa hồng cao</div></div></div>
+  <div class="tabs">
+    <button class="tab active" onclick="filterLib('all',this)">Tất cả</button>
+    <button class="tab" onclick="filterLib('beauty',this)">Làm đẹp</button>
+    <button class="tab" onclick="filterLib('health',this)">Sức khỏe</button>
+    <button class="tab" onclick="filterLib('home',this)">Gia dụng</button>
+    <button class="tab" onclick="filterLib('tech',this)">Công nghệ</button>
+  </div>
+  <div class="lib-grid" id="lib-grid"></div>
+</div>
+
+<!-- CHANNELS -->
+<div id="page-channels" class="page">
+  <div class="ph"><div><div class="ph-title">📡 Kênh của anh</div><div class="ph-sub">Quản lý và theo dõi các kênh đang hoạt động</div></div><button class="btn btn-primary" onclick="N('Kết nối kênh mới sắp ra mắt!')">+ Kênh mới</button></div>
+  <div class="g2">
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:22px;">🎵</div>
+        <div style="flex:1;"><div style="font-size:15px;font-weight:600;">Kênh TikTok chính</div><div style="font-size:12px;color:var(--t2);margin-top:2px;display:flex;align-items:center;gap:6px;"><span class="status-dot"></span>Đang hoạt động</div></div>
+        <span class="plat pt">TikTok</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;">14</div><div style="font-size:10px;color:var(--t3);">Video tuần này</div></div>
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;">3</div><div style="font-size:10px;color:var(--t3);">Chờ đăng</div></div>
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--green);">↑82%</div><div style="font-size:10px;color:var(--t3);">Hoàn thành</div></div>
+      </div>
+      <button class="btn btn-primary" onclick="P('create',null)" style="width:100%;font-size:12px;">+ Tạo video cho kênh này</button>
+    </div>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(24,119,242,.2);border:1px solid rgba(24,119,242,.3);display:flex;align-items:center;justify-content:center;font-size:22px;">📘</div>
+        <div style="flex:1;"><div style="font-size:15px;font-weight:600;">Facebook Page</div><div style="font-size:12px;color:var(--t2);margin-top:2px;display:flex;align-items:center;gap:6px;"><span class="status-dot"></span>Đang hoạt động</div></div>
+        <span class="plat pf">Facebook</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px;">
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;">8</div><div style="font-size:10px;color:var(--t3);">Post tuần này</div></div>
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;">1</div><div style="font-size:10px;color:var(--t3);">Chờ đăng</div></div>
+        <div style="text-align:center;background:var(--s2);border-radius:var(--rsm);padding:10px;"><div style="font-size:20px;font-weight:700;color:var(--green);">↑65%</div><div style="font-size:10px;color:var(--t3);">Hoàn thành</div></div>
+      </div>
+      <button class="btn btn-ghost" onclick="N('Tạo bài Facebook sắp ra mắt!')" style="width:100%;font-size:12px;">+ Tạo bài đăng</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:0;">
+    <div class="card-title">Kết nối thêm kênh</div>
+    <div class="g2">
+      <div style="background:var(--s2);border:1px dashed var(--b2);border-radius:var(--r);padding:16px;cursor:pointer;text-align:center;" onclick="N('YouTube API sắp kết nối được!')">
+        <div style="font-size:28px;margin-bottom:8px;">▶️</div>
+        <div style="font-size:13px;font-weight:500;">YouTube Channel</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px;">Đăng video tự động qua YouTube API</div>
+        <div style="margin-top:8px;"><span class="tag tag-free">Sắp ra mắt</span></div>
+      </div>
+      <div style="background:var(--s2);border:1px dashed var(--b2);border-radius:var(--r);padding:16px;cursor:pointer;text-align:center;" onclick="N('Instagram sắp kết nối được!')">
+        <div style="font-size:28px;margin-bottom:8px;">📸</div>
+        <div style="font-size:13px;font-weight:500;">Instagram</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:4px;">Đăng Reels qua Meta API</div>
+        <div style="margin-top:8px;"><span class="tag tag-free">Sắp ra mắt</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- Notification -->
+<div class="notif" id="notif"><span id="ni">✅</span><span id="nt">OK!</span></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────
+const WORKFLOWS = [
+  {id:1,icon:'🔥',name:'TikTok Affiliate Review 30s',desc:'Review sản phẩm ngắn, hook mạnh, convert cao nhất',tags:['TikTok','Miễn phí','Affiliate'],color:'var(--coral)',
+   tools:['CapCut AI (miễn phí)','Claude AI (kịch bản)','TikTok Studio (lên lịch)'],
+   steps:[
+    {n:1,t:'Chọn sản phẩm hot từ TikTok Shop',d:'Vào TikTok Shop Creator Center → xem Top Selling → chọn sản phẩm có hoa hồng ≥10% và giá 100k–500k. Ưu tiên sản phẩm đã có nhiều video.',tool:'TikTok Shop Creator'},
+    {n:2,t:'Tạo kịch bản AI tại trang Kịch bản AI',d:'Bấm vào mục Kịch bản AI → điền thông tin → chọn phong cách "Hook mạnh" → Claude viết hook 3 giây + nội dung + CTA.',tool:'Claude AI'},
+    {n:3,t:'Chụp/quay sản phẩm hoặc lấy ảnh từ shop',d:'Xin ảnh từ nhà cung cấp hoặc chụp sản phẩm thật. Cần 3–5 ảnh rõ nét, ánh sáng tốt. Ảnh thật convert tốt hơn ảnh mạng.',tool:'Điện thoại'},
+    {n:4,t:'Tạo video bằng CapCut AI',d:'Mở CapCut → Script to Video → paste kịch bản → chọn giọng Việt → chọn template → thêm ảnh sản phẩm → thêm nhạc trending → xuất 1080p.',tool:'CapCut AI'},
+    {n:5,t:'Đăng lên TikTok với caption và hashtag',d:'Mở TikTok → đăng video → paste caption và hashtag đã tạo từ AI → gắn link sản phẩm TikTok Shop → đặt giờ đăng 19:00–21:00.',tool:'TikTok Studio'},
+   ],
+   tip:'Video review chân thực 15–30 giây có tỉ lệ click affiliate cao nhất. Luôn gắn link sản phẩm trực tiếp.'},
+  {id:2,icon:'📖',name:'TikTok Kể chuyện 60s',desc:'Vấn đề → trải nghiệm → giải pháp → kết quả — convert rất tốt',tags:['TikTok','Miễn phí','Story'],color:'var(--acc)',
+   tools:['CapCut AI','Claude AI','TikTok'],
+   steps:[
+    {n:1,t:'Xác định vấn đề khách hàng',d:'Nghĩ về 1 vấn đề cụ thể mà sản phẩm giải quyết. VD: "Da khô bong tróc mùa lạnh", "Đau lưng sau khi ngồi nhiều giờ". Vấn đề càng cụ thể càng tốt.',tool:'Brainstorm'},
+    {n:2,t:'Viết kịch bản Story bằng Claude AI',d:'Trang Kịch bản AI → chọn "Kể chuyện" → điền vấn đề vào tính năng → Claude tạo kịch bản theo cấu trúc: Hook (vấn đề) → Thân (trải nghiệm) → CTA (giải pháp).',tool:'Claude AI'},
+    {n:3,t:'Quay video tự nói hoặc dùng AI voice',d:'Cách 1: Tự đọc kịch bản trước camera (chân thực nhất). Cách 2: Dùng CapCut Text to Speech giọng Việt Nam. Cách 3: HeyGen AI avatar (5 video/tháng miễn phí).',tool:'CapCut / HeyGen'},
+    {n:4,t:'Dựng video có subtitle + B-roll',d:'Ghép video + ảnh minh hoạ → thêm subtitle tự động → thêm nhạc nền nhẹ (âm lượng 20%) → thêm sticker cảm xúc → xuất 1080p.',tool:'CapCut'},
+    {n:5,t:'Đăng và theo dõi hiệu quả',d:'Đăng lúc 19:00–21:00 → xem analytics sau 24 giờ → nếu view tốt: nhân bản kịch bản với sản phẩm tương tự.',tool:'TikTok Analytics'},
+   ],
+   tip:'Video kể chuyện giữ chân người xem lâu hơn → TikTok đẩy nhiều hơn. Kết thúc bằng câu hỏi để tăng comment.'},
+  {id:3,icon:'📘',name:'Facebook Page Product Post',desc:'Bài đăng bán hàng Facebook với ảnh đẹp và caption AI',tags:['Facebook','Miễn phí','Post'],color:'var(--teal)',
+   tools:['Claude AI (caption)','Canva (ảnh)','Facebook'],
+   steps:[
+    {n:1,t:'Tạo caption bán hàng bằng Claude AI',d:'Trang Kịch bản AI → chọn ngành hàng → Claude tạo caption dạng "Vấn đề → Giải pháp → CTA" phù hợp Facebook. Caption Facebook dài hơn TikTok, 150–300 từ.',tool:'Claude AI'},
+    {n:2,t:'Tạo ảnh sản phẩm đẹp bằng Canva',d:'Vào canva.com (miễn phí) → chọn template Facebook Post → thêm ảnh sản phẩm → thêm text giá sale → thêm logo/watermark → tải về JPG.',tool:'Canva (miễn phí)'},
+    {n:3,t:'Đăng lên Facebook Page',d:'Vào Facebook Page → tạo bài đăng → upload ảnh → paste caption → thêm link sản phẩm affiliate vào comment đầu tiên (Facebook hạn chế link trong post).',tool:'Facebook'},
+    {n:4,t:'Tương tác và boost tự nhiên',d:'Reply mọi comment trong 1 giờ đầu → bấm Like và trả lời để Facebook đẩy bài → share vào các group mua bán liên quan.',tool:'Facebook'},
+   ],
+   tip:'Facebook ưu tiên bài có nhiều tương tác sớm. Hãy comment link affiliate vào comment đầu tiên thay vì để trong post.'},
+  {id:4,icon:'▶️',name:'YouTube Shorts Affiliate',desc:'Video ngắn YouTube Shorts — lượt xem ổn định dài hạn',tags:['YouTube','Miễn phí','Shorts'],color:'#FF6B6B',
+   tools:['CapCut AI','Claude AI','YouTube Studio'],
+   steps:[
+    {n:1,t:'Tạo kịch bản YouTube Shorts',d:'Claude AI → chọn phong cách "Tutorial" hoặc "Review" → độ dài 30–60 giây → YouTube Shorts ưu tiên nội dung giáo dục và hữu ích.',tool:'Claude AI'},
+    {n:2,t:'Tạo video bằng CapCut',d:'Tỉ lệ 9:16 (giống TikTok) → thêm chapter title ở 5 giây đầu → subtitle rõ ràng → nhạc nền không copyright (dùng nhạc từ YouTube Audio Library miễn phí).',tool:'CapCut'},
+    {n:3,t:'Upload lên YouTube Studio',d:'Vào studio.youtube.com → Upload video → thêm tiêu đề có keyword → mô tả có link affiliate → thêm hashtag #Shorts → chọn "Made for kids: No".',tool:'YouTube Studio'},
+    {n:4,t:'Tối ưu SEO YouTube',d:'Tiêu đề chứa keyword sản phẩm + từ khoá hot (review, có tốt không, mua ở đâu) → Thumbnail đẹp → Thêm vào playlist sản phẩm cùng ngành.',tool:'YouTube Studio'},
+   ],
+   tip:'YouTube Shorts được đề xuất lâu dài hơn TikTok. 1 video Shorts tốt có thể mang traffic nhiều tháng sau.'},
+  {id:5,icon:'📸',name:'Instagram Reels + Story',desc:'Kết hợp Reels và Story để tăng reach và chuyển đổi',tags:['Instagram','Miễn phí','Reels'],color:'#E1306C',
+   tools:['CapCut AI','Claude AI','Instagram'],
+   steps:[
+    {n:1,t:'Tạo Reels từ video TikTok',d:'Dùng lại video TikTok đã tạo → xoá logo TikTok bằng CapCut → đổi nhạc sang nhạc Instagram → caption ngắn hơn (150 ký tự).',tool:'CapCut'},
+    {n:2,t:'Đăng Reels với link bio',d:'Instagram không cho link trong caption → để link affiliate ở bio (dùng Linktree miễn phí để chứa nhiều link) → trong caption nhắc "Link ở bio".',tool:'Instagram'},
+    {n:3,t:'Tạo Story với sticker Link',d:'Story → thêm ảnh/video sản phẩm → thêm sticker Link → paste link affiliate vào → thêm sticker "Swipe up" hoặc "Xem ngay".',tool:'Instagram Story'},
+    {n:4,t:'Highlights sản phẩm',d:'Lưu Story vào Highlights với tên theo ngành (VD: "Skincare", "Gia dụng") → Highlights hiện mãi trên profile → khách ghé xem lại được.',tool:'Instagram'},
+   ],
+   tip:'Instagram Story sticker Link là công cụ affiliate mạnh nhất trên Instagram. Tỉ lệ click cao hơn nhiều so với link bio.'},
+  {id:6,icon:'🎓',name:'Tutorial How-to Video',desc:'Hướng dẫn sử dụng sản phẩm — build trust, tăng chuyển đổi',tags:['TikTok','YouTube','Tutorial'],color:'var(--amber)',
+   tools:['CapCut','Claude AI','TikTok/YouTube'],
+   steps:[
+    {n:1,t:'Chọn angle tutorial cụ thể',d:'Không làm "hướng dẫn chung" — chọn 1 use case cụ thể. VD thay vì "Cách dùng kem dưỡng da" → "Cách dưỡng da buổi tối trong 5 phút cho da khô".',tool:'Brainstorm'},
+    {n:2,t:'Viết kịch bản step-by-step',d:'Claude AI → chọn "Tutorial" → kịch bản có format: Giới thiệu vấn đề → Bước 1/2/3 → Kết quả → CTA. Mỗi bước ngắn gọn, dễ làm theo.',tool:'Claude AI'},
+    {n:3,t:'Quay video màn hình hoặc tay',d:'Quay tay thực hiện các bước (góc nhìn từ trên xuống) → cắt ghép từng bước trong CapCut → thêm text overlay chỉ dẫn từng bước.',tool:'CapCut'},
+    {n:4,t:'Thêm call-to-action cuối video',d:'"Mua sản phẩm này ở link bio/TikTok Shop" → gắn link affiliate → thêm discount code nếu có để tracking chuyển đổi.',tool:'TikTok/YouTube'},
+   ],
+   tip:'Tutorial video có watch time cao nhất → được đề xuất nhiều hơn. 1 tutorial tốt = nhiều tháng traffic tự nhiên.'},
+  {id:7,icon:'🚀',name:'Multi-platform Blast',desc:'1 video → đăng đồng thời TikTok + Facebook + YouTube cùng ngày',tags:['TikTok','Facebook','YouTube','Miễn phí'],color:'var(--green)',
+   steps:[
+    {n:1,t:'Tạo 1 video gốc chất lượng cao',d:'Đầu tư làm 1 video tốt nhất có thể → 1080p → lighting tốt → âm thanh rõ → subtitle → hook mạnh. Video này sẽ đăng 3 nơi.',tool:'CapCut'},
+    {n:2,t:'Tạo 3 phiên bản caption khác nhau',d:'Claude AI viết 3 caption: (1) TikTok ngắn 100 ký tự + hashtag trending, (2) Facebook dài 200 từ + storytelling, (3) YouTube tiêu đề SEO + mô tả keyword.',tool:'Claude AI'},
+    {n:3,t:'Đăng TikTok trước (19:00)',d:'TikTok có reach tự nhiên tốt nhất → đăng đầu tiên → xem analytics 2 giờ đầu. Nếu đang viral → đăng tiếp Facebook, YouTube.',tool:'TikTok Studio'},
+    {n:4,t:'Đăng Facebook (20:00)',d:'Share video lên Facebook Page → thêm caption Facebook riêng → link affiliate vào comment đầu → share vào nhóm liên quan.',tool:'Facebook'},
+    {n:5,t:'Upload YouTube Shorts (21:00)',d:'Upload lên YouTube với tiêu đề SEO → hashtag #Shorts → link affiliate trong mô tả → thêm vào playlist.',tool:'YouTube Studio'},
+   ],
+   tip:'Multi-platform x3 lượng tiếp cận từ 1 video. Làm 3 video/tuần theo cách này = 9 điểm tiếp xúc với khách hàng.'},
+  {id:8,icon:'🎵',name:'Trending Audio + Product',desc:'Bắt trend âm thanh viral để đẩy reach tự nhiên lên TikTok',tags:['TikTok','Trending','Miễn phí'],color:'#FF6B6B',
+   steps:[
+    {n:1,t:'Tìm nhạc trending TikTok',d:'Mở TikTok → tab Khám phá → xem video viral → note tên nhạc đang được dùng nhiều → hoặc vào TikTok Creative Center → Music Chart → lọc theo VN.',tool:'TikTok'},
+    {n:2,t:'Tạo concept video theo nhạc',d:'Claude AI → paste tên nhạc + sản phẩm → yêu cầu "viết kịch bản video khớp với nhịp điệu nhạc [tên nhạc]" → Claude gợi ý timing cho từng cảnh.',tool:'Claude AI'},
+    {n:3,t:'Tạo video với nhạc trending đó',d:'CapCut → thêm nhạc trending → ghép cảnh khớp với beat → thêm text overlay → KHÔNG dùng voiceover nếu nhạc quá to.',tool:'CapCut'},
+    {n:4,t:'Đăng và ride the wave',d:'Đăng ngay khi nhạc còn trending (window 3–7 ngày) → dùng hashtag của nhạc đó → reply comment nhanh trong 1 giờ đầu.',tool:'TikTok'},
+   ],
+   tip:'Video dùng nhạc trending được TikTok đẩy vào FYP nhiều hơn 3–5x. Hành động nhanh khi nhạc còn hot.'},
+  {id:9,icon:'✨',name:'Before & After Transformation',desc:'So sánh trước-sau — cực kỳ viral với sản phẩm làm đẹp, gia dụng',tags:['TikTok','Instagram','Before-After'],color:'var(--teal)',
+   steps:[
+    {n:1,t:'Chuẩn bị nội dung Before và After',d:'"Before": ảnh/video vấn đề (da xấu, đồ bừa bộn, đau nhức). "After": ảnh/video kết quả sau khi dùng sản phẩm. Contrast càng rõ càng tốt.',tool:'Điện thoại'},
+    {n:2,t:'Tạo kịch bản So sánh',d:'Claude AI → chọn "So sánh trước-sau" → điền vấn đề Before và kết quả After → Claude tạo script dạng: "Trước khi dùng... → Sau 7 ngày..."',tool:'Claude AI'},
+    {n:3,t:'Dựng video split-screen hoặc transition',d:'CapCut có sẵn hiệu ứng Before/After split screen → kéo ảnh Before vào trái, After vào phải → thêm transition đẹp → thêm text "Trước" / "Sau".',tool:'CapCut'},
+    {n:4,t:'Hook bằng kết quả After trước',d:'Kỹ thuật: cho thấy kết quả After trong 2 giây đầu → "Tại sao lại ra được kết quả này?" → reveal sản phẩm → CTA.',tool:'CapCut'},
+   ],
+   tip:'Before/After là dạng nội dung viral nhất trên TikTok và Instagram. Kết quả càng dramatic càng nhiều share.'},
+  {id:10,icon:'⏰',name:'Flash Sale Urgency',desc:'Video tạo urgency cho flash sale — tăng tỉ lệ mua ngay',tags:['TikTok','Facebook','Flash Sale'],color:'var(--coral)',
+   steps:[
+    {n:1,t:'Xác định flash sale và deadline',d:'Chọn sản phẩm đang sale trên TikTok Shop/Shopee → note giá gốc, giá sale, thời gian kết thúc. Urgency thật sự hiệu quả hơn urgency giả.',tool:'TikTok Shop'},
+    {n:2,t:'Viết kịch bản tạo urgency',d:'Claude AI → chọn "Flash sale" → điền giá gốc, giá sale, deadline → Claude tạo kịch bản có yếu tố: giới hạn thời gian + số lượng + social proof.',tool:'Claude AI'},
+    {n:3,t:'Tạo video đếm ngược',d:'CapCut → thêm sticker countdown timer → màu đỏ nổi bật → text size lớn cho giá sale → thêm nhạc nhanh, năng lượng cao.',tool:'CapCut'},
+    {n:4,t:'Đăng nhiều lần trong ngày sale',d:'Đăng lần 1 (8 sáng khi sale bắt đầu) → Lần 2 (12 trưa reminder) → Lần 3 (19:00 last chance). 3 video 1 ngày cho cùng 1 deal sale.',tool:'TikTok'},
+   ],
+   tip:'Flash sale video hiệu quả nhất khi deadline thật. Đăng 3 lần/ngày sale mà không bị spam vì mỗi video là 1 angle khác nhau.'},
+];
+
+const PRODUCTS = [
+  {cat:'beauty',name:'Kem dưỡng da collagen ban đêm',comm:'12–18%',note:'Bán chạy top 1 TikTok Shop tháng 6'},
+  {cat:'beauty',name:'Serum vitamin C làm sáng da',comm:'15%',note:'Trend mạnh, nhiều video viral'},
+  {cat:'beauty',name:'Son dưỡng môi SPF 30',comm:'10%',note:'Giá thấp, dễ mua, đơn nhiều'},
+  {cat:'health',name:'Collagen đường uống Nhật Bản',comm:'20%',note:'Hoa hồng cao, AOV lớn'},
+  {cat:'health',name:'Thực phẩm chức năng giảm cân',comm:'18%',note:'Cần review thật, không quảng cáo sai'},
+  {cat:'health',name:'Máy massage cổ vai gáy EMS',comm:'15%',note:'Giải quyết pain point rõ ràng'},
+  {cat:'home',name:'Máy lọc không khí mini để bàn',comm:'12%',note:'Sản phẩm theo mùa, mùa khô bán tốt'},
+  {cat:'home',name:'Nồi chiên không dầu 3.5L',comm:'8%',note:'AOV cao, hoa hồng tốt dù % thấp'},
+  {cat:'home',name:'Đèn LED cảm ứng dán tường',comm:'20%',note:'Giá thấp, nhiều người mua combo'},
+  {cat:'tech',name:'Tai nghe không dây TWS',comm:'10%',note:'Cạnh tranh cao, cần review độc đáo'},
+  {cat:'tech',name:'Sạc dự phòng 20000mAh PD65W',comm:'8%',note:'Sản phẩm thiết yếu, dễ bán'},
+  {cat:'tech',name:'Giá đỡ điện thoại xe hơi từ tính',comm:'22%',note:'Hoa hồng rất cao, giá thấp'},
+];
+
+let queueItems=[
+  {id:1,title:'Kem dưỡng da collagen — Hook 30s',plats:['tt','fb'],time:'19:00 hôm nay',icon:'🧴',status:'scheduled'},
+  {id:2,title:'Máy massage cổ vai — Hook mạnh',plats:['tt'],time:'20:00 hôm nay',icon:'💆',status:'scheduled'},
+  {id:3,title:'Thực phẩm giảm cân — Story 60s',plats:['tt','fb'],time:'21:00 hôm nay',icon:'🌿',status:'scheduled'},
+];
+let trackerItems=[];
+
+// ─── NAVIGATION ─────────────────────────────────────────
+function P(name,navEl){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(navEl)navEl.classList.add('active');
+  if(name==='queue')renderQueue(document.getElementById('full-queue'),0);
+  if(name==='dashboard')renderQueue(document.getElementById('dash-queue'),3);
+  if(name==='workflow')renderWorkflows();
+  if(name==='library')renderLibrary('all');
+  if(name==='tracker')renderTracker();
+}
+
+// ─── NOTIFICATION ────────────────────────────────────────
+function N(msg,icon='✅'){
+  const n=document.getElementById('notif');
+  document.getElementById('nt').textContent=msg;
+  document.getElementById('ni').textContent=icon;
+  n.classList.add('show');
+  setTimeout(()=>n.classList.remove('show'),3000);
+}
+
+// ─── QUEUE ───────────────────────────────────────────────
+function renderQueue(container,limit){
+  if(!container)return;
+  const items=limit?queueItems.slice(0,limit):queueItems;
+  if(!items.length){container.innerHTML='<div style="text-align:center;color:var(--t3);padding:24px;font-size:13px;">Chưa có video nào — <a href="#" onclick="P(\'create\',null);return false;" style="color:var(--acc2);">Tạo video mới</a></div>';return;}
+  const platMap={tt:'<span class="plat pt">🎵 TikTok</span>',yt:'<span class="plat py">▶️ YouTube</span>',fb:'<span class="plat pf">📘 Facebook</span>',ig:'<span class="plat pi">📸 Instagram</span>'};
+  container.innerHTML=items.map(item=>`
+    <div class="q-item">
+      <div class="q-thumb">${item.icon}</div>
+      <div class="q-info">
+        <div class="q-title">${item.title}</div>
+        <div class="q-meta">${item.plats.map(p=>platMap[p]||'').join('')}<span style="font-size:11px;color:var(--t3);">⏰ ${item.time}</span></div>
+      </div>
+      <div class="q-actions">
+        <button class="icon-btn" onclick="N('Chỉnh sửa sắp ra mắt!')" title="Chỉnh sửa">✏️</button>
+        <button class="icon-btn" onclick="markPosted(${item.id})" title="Đã đăng">✓</button>
+        <button class="icon-btn" onclick="delItem(${item.id})" title="Xóa">🗑</button>
+      </div>
+    </div>`).join('');
+}
+function markPosted(id){queueItems=queueItems.filter(i=>i.id!==id);updateBadge();renderQueue(document.getElementById('dash-queue'),3);renderQueue(document.getElementById('full-queue'),0);N('✅ Đã đăng thành công!');}
+function delItem(id){queueItems=queueItems.filter(i=>i.id!==id);updateBadge();renderQueue(document.getElementById('dash-queue'),3);renderQueue(document.getElementById('full-queue'),0);N('🗑 Đã xóa');}
+function updateBadge(){const c=queueItems.length;document.getElementById('qbadge').textContent=c;document.getElementById('sq').textContent=c;}
+function addToQueue(title,time){
+  const icons=['🛍️','💄','🧴','💪','🌿','🏠','📱','🍎','👗','⌚'];
+  const icon=icons[Math.floor(Math.random()*icons.length)];
+  const plats=[];
+  document.querySelectorAll('.plat-opt').forEach(el=>{
+    const cls=[...el.classList];
+    if(cls.includes('sel-tt'))plats.push('tt');
+    else if(cls.includes('sel-yt'))plats.push('yt');
+    else if(cls.includes('sel-fb'))plats.push('fb');
+    else if(cls.includes('sel-ig'))plats.push('ig');
+  });
+  queueItems.unshift({id:Date.now(),title:`${title} — AI generated`,plats:plats.length?plats:['tt'],time:`${time} hôm nay`,icon,status:'scheduled'});
+  updateBadge();
+  N(`✅ Thêm vào hàng chờ — đăng lúc ${time}`);
+}
+
+// ─── PLATFORM TOGGLE ─────────────────────────────────────
+function tP(el,type){
+  const cls='sel-'+type;
+  el.classList.toggle(cls);
+}
+
+// ─── WORKFLOWS ───────────────────────────────────────────
+function renderWorkflows(){
+  const grid=document.getElementById('wf-grid');
+  grid.innerHTML=WORKFLOWS.map(w=>`
+    <div class="wf-card" onclick="showWF(${w.id})" id="wfc-${w.id}">
+      <div class="wf-icon">${w.icon}</div>
+      <div class="wf-name">${w.name}</div>
+      <div class="wf-desc">${w.desc}</div>
+      <div class="wf-tags">${w.tags.map(t=>`<span class="tag ${t==='Miễn phí'?'tag-free':'tag-plat'}">${t}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+function showWF(id){
+  document.querySelectorAll('.wf-card').forEach(c=>c.classList.remove('active-wf'));
+  document.getElementById('wfc-'+id)?.classList.add('active-wf');
+  const w=WORKFLOWS.find(x=>x.id===id);
+  if(!w)return;
+  const det=document.getElementById('wf-detail');
+  det.style.display='block';
+  det.innerHTML=`
+    <div class="wf-detail">
+      <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
+        <div style="font-size:32px;">${w.icon}</div>
+        <div style="flex:1;">
+          <div style="font-size:16px;font-weight:700;">${w.name}</div>
+          <div style="font-size:13px;color:var(--t2);margin-top:3px;">${w.desc}</div>
+          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+            ${w.tags.map(t=>`<span class="tag ${t==='Miễn phí'?'tag-free':'tag-plat'}">${t}</span>`).join('')}
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="P('create',null)">▶ Chạy workflow</button>
+      </div>
+      ${w.tools?`<div style="margin-bottom:14px;"><div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Công cụ cần dùng (tất cả miễn phí)</div><div style="display:flex;gap:6px;flex-wrap:wrap;">${w.tools.map(t=>`<span class="wf-step-tool">${t}</span>`).join('')}</div></div>`:''}
+      <div style="font-size:11px;font-weight:600;color:var(--t3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">Hướng dẫn từng bước</div>
+      <div class="wf-steps">
+        ${w.steps.map(s=>`
+          <div class="wf-step">
+            <div class="wf-step-num">${s.n}</div>
+            <div class="wf-step-body">
+              <div class="wf-step-title">${s.t}</div>
+              <div class="wf-step-desc">${s.d}</div>
+              ${s.tool?`<span class="wf-step-tool">🔧 ${s.tool}</span>`:''}
+            </div>
+          </div>`).join('')}
+      </div>
+      ${w.tip?`<div class="tip-box" style="margin-top:14px;">💡 Pro tip: ${w.tip}</div>`:''}
+      <div style="display:flex;gap:8px;margin-top:16px;">
+        <button class="btn btn-primary" style="flex:1;" onclick="P('create',null)">✨ Bắt đầu tạo nội dung</button>
+        <button class="btn btn-ghost" onclick="P('script',null)">📝 Viết kịch bản trước</button>
+      </div>
+    </div>`;
+  det.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ─── LIBRARY ─────────────────────────────────────────────
+function renderLibrary(filter){
+  const items=filter==='all'?PRODUCTS:PRODUCTS.filter(p=>p.cat===filter);
+  document.getElementById('lib-grid').innerHTML=items.map(p=>`
+    <div class="lib-card">
+      <div class="lib-cat">${{beauty:'Làm đẹp',health:'Sức khỏe',home:'Gia dụng',tech:'Công nghệ'}[p.cat]||p.cat}</div>
+      <div class="lib-prod">${p.name}</div>
+      <div class="lib-comm">Hoa hồng: ${p.comm}</div>
+      <div class="lib-note">${p.note}</div>
+      <button class="btn btn-ghost" style="width:100%;margin-top:10px;font-size:11px;" onclick="useProduct('${p.name.replace(/'/g,"\\'")}')">Tạo video cho SP này →</button>
+    </div>`).join('');
+}
+function filterLib(cat,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderLib=renderLibrary(cat);
+}
+function useProduct(name){
+  P('create',null);
+  setTimeout(()=>{document.getElementById('v-prod').value=name;},100);
+  N('✅ Đã điền sản phẩm vào form tạo video!');
+}
+
+// ─── TRACKER ─────────────────────────────────────────────
+function addTracker(){
+  const plat=document.getElementById('tr-plat').value;
+  const prod=document.getElementById('tr-prod').value.trim();
+  const amt=parseInt(document.getElementById('tr-amt').value)||0;
+  const date=document.getElementById('tr-date').value;
+  if(!prod||!amt){N('Điền đầy đủ thông tin!','⚠️');return;}
+  trackerItems.unshift({plat,prod,amt,date:date||new Date().toLocaleDateString('vi-VN')});
+  document.getElementById('tr-prod').value='';
+  document.getElementById('tr-amt').value='';
+  renderTracker();
+  N(`✅ Thêm ${amt.toLocaleString('vi-VN')}đ từ ${plat}!`);
+}
+function renderTracker(){
+  const total=trackerItems.reduce((s,i)=>s+i.amt,0);
+  const month=trackerItems.filter(i=>{const d=new Date(i.date);return d.getMonth()===new Date().getMonth();}).reduce((s,i)=>s+i.amt,0);
+  document.getElementById('tr-total').textContent=total.toLocaleString('vi-VN')+'đ';
+  document.getElementById('tr-month').textContent=month.toLocaleString('vi-VN')+'đ';
+  document.getElementById('tr-orders').textContent=trackerItems.length;
+  if(trackerItems.length){
+    const platCount={};trackerItems.forEach(i=>platCount[i.plat]=(platCount[i.plat]||0)+i.amt);
+    const best=Object.entries(platCount).sort((a,b)=>b[1]-a[1])[0];
+    document.getElementById('tr-best').textContent=best?best[0].replace(' Affiliate',''):'—';
+  }
+  const list=document.getElementById('tr-list');
+  if(!trackerItems.length){list.innerHTML='<div style="text-align:center;color:var(--t3);padding:20px;font-size:13px;">Chưa có dữ liệu</div>';return;}
+  list.innerHTML=trackerItems.map(i=>`
+    <div class="tracker-row">
+      <div class="tr-icon">💰</div>
+      <div class="tr-info"><div class="tr-name">${i.prod}</div><div class="tr-sub">${i.plat} · ${i.date}</div></div>
+      <div class="tr-val">+${i.amt.toLocaleString('vi-VN')}đ</div>
+    </div>`).join('');
+}
+
+// ─── AI CREATE ───────────────────────────────────────────
+async function createV(){
+  const prod=document.getElementById('v-prod').value.trim();
+  if(!prod){N('Nhập tên sản phẩm trước anh ơi!','⚠️');return;}
+  const orig=document.getElementById('v-orig').value.trim();
+  const sale=document.getElementById('v-sale').value.trim();
+  const feat=document.getElementById('v-feat').value.trim();
+  const style=document.getElementById('v-style').value;
+  const time=document.getElementById('v-time').value;
+  const styleMap={hook:'hook mạnh gây tò mò 3 giây đầu',review:'review chân thực',story:'kể chuyện vấn đề→giải pháp',compare:'so sánh trước-sau',tutorial:'hướng dẫn sử dụng step-by-step',urgency:'flash sale tạo urgency mua ngay'};
+  document.getElementById('cl').classList.add('show');
+  document.getElementById('cbtn').disabled=true;
+  document.getElementById('cbtn').textContent='⏳ Đang tạo...';
+  document.getElementById('create-out').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px;"><div style="font-size:28px;" class="spin">⚡</div><div style="margin-top:12px;font-size:13px;">Claude AI đang viết kịch bản...</div></div>';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Viết kịch bản TikTok affiliate 30 giây tiếng Việt cho: ${prod}${orig?', giá gốc '+orig:''}${sale?', giá sale '+sale:''}${feat?', tính năng: '+feat:''}. Phong cách: ${styleMap[style]||style}. Trả về JSON hợp lệ không có markdown: {"hook":"câu mở 3-5s cực kỳ thu hút","body":"nội dung chính 15-20s nêu lợi ích","cta":"kêu gọi hành động 5s tạo urgency","voiceover_tip":"1 tip giọng đọc","caption":"caption tiếng Việt 100-120 ký tự tự nhiên","hashtags":["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8"]}`}]})});
+    const data=await res.json();
+    const parsed=JSON.parse(data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
+    document.getElementById('create-out').innerHTML=`
+      <div style="width:100%">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:600;color:var(--green);">✅ Kịch bản xong!</div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="copyAll()">📋 Copy</button>
+        </div>
+        <div class="script-block"><div class="script-tag">🎣 Hook (0–3 giây)</div><div class="script-txt" id="r-hook">${parsed.hook||''}</div></div>
+        <div class="script-block"><div class="script-tag">📣 Nội dung chính</div><div class="script-txt">${parsed.body||''}</div></div>
+        <div class="script-block"><div class="script-tag">🛒 Call to action</div><div class="script-txt">${parsed.cta||''}</div></div>
+        <div class="script-block"><div class="script-tag">🎙 Tip giọng đọc</div><div class="script-txt">${parsed.voiceover_tip||''}</div></div>
+        <div class="script-block"><div class="script-tag">✍️ Caption + Hashtag</div><div class="script-txt">${parsed.caption||''}</div><div style="margin-top:8px;">${(parsed.hashtags||[]).map(h=>`<span class="hashtag">#${h.replace('#','')}</span>`).join('')}</div></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="addToQueue('${prod.replace(/'/g,"\\'")}','${time}')">➕ Thêm hàng chờ lúc ${time}</button>
+          <button class="btn btn-ghost" onclick="P('capcut',null)">🎬 Hướng dẫn làm video</button>
+        </div>
+      </div>`;
+  }catch(e){
+    document.getElementById('create-out').innerHTML='<div style="text-align:center;color:var(--coral);padding:20px;font-size:13px;">Lỗi kết nối AI. Thử lại nhé anh!</div>';
+  }
+  document.getElementById('cl').classList.remove('show');
+  document.getElementById('cbtn').disabled=false;
+  document.getElementById('cbtn').textContent='✨ Tạo kịch bản ngay';
+}
+
+function copyAll(){
+  const texts=Array.from(document.querySelectorAll('.script-txt')).map(e=>e.innerText).join('\n\n');
+  navigator.clipboard.writeText(texts).then(()=>N('📋 Đã copy toàn bộ kịch bản!'));
+}
+
+// ─── AI SCRIPT ───────────────────────────────────────────
+async function genScript(){
+  const prod=document.getElementById('s-prod').value.trim();
+  if(!prod){N('Nhập sản phẩm trước anh!','⚠️');return;}
+  const price=document.getElementById('s-price').value.trim();
+  const feat=document.getElementById('s-feat').value.trim();
+  const style=document.getElementById('s-style').value;
+  const dur=document.getElementById('s-dur').value;
+  const niche=document.getElementById('s-niche').value;
+  document.getElementById('sl').classList.add('show');
+  document.getElementById('script-out').innerHTML='<div style="text-align:center;color:var(--t2);padding:40px;"><div style="font-size:28px;" class="spin">✍️</div><div style="margin-top:12px;font-size:13px;">Claude đang viết kịch bản...</div></div>';
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-6',max_tokens:1000,messages:[{role:'user',content:`Viết kịch bản TikTok ${dur} tiếng Việt. Sản phẩm: ${prod}${price?', '+price:''}${feat?', tính năng: '+feat:''}. Ngành: ${niche}. Phong cách: ${style}. JSON hợp lệ không markdown: {"hook":"...","body":"...","cta":"...","voiceover_tip":"...","caption":"...","hashtags":["...","...","...","...","...","...","...","..."]}`}]})});
+    const data=await res.json();
+    const parsed=JSON.parse(data.content.map(i=>i.text||'').join('').replace(/```json|```/g,'').trim());
+    document.getElementById('script-out').innerHTML=`
+      <div style="width:100%">
+        <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:13px;font-weight:600;color:var(--green);">✅ Kịch bản ${dur} sẵn rồi!</div>
+          <button class="btn btn-ghost" style="font-size:11px;padding:4px 10px;" onclick="copyScript()">📋 Copy tất cả</button>
+        </div>
+        <div class="script-block"><div class="script-tag">🎣 Hook</div><div class="script-txt" id="sc1">${parsed.hook||''}</div></div>
+        <div class="script-block"><div class="script-tag">📣 Nội dung chính</div><div class="script-txt" id="sc2">${parsed.body||''}</div></div>
+        <div class="script-block"><div class="script-tag">🛒 CTA</div><div class="script-txt" id="sc3">${parsed.cta||''}</div></div>
+        ${parsed.voiceover_tip?`<div class="script-block"><div class="script-tag">🎙 Tip giọng đọc</div><div class="script-txt">${parsed.voiceover_tip}</div></div>`:''}
+        <div class="script-block"><div class="script-tag">✍️ Caption + Hashtag</div><div class="script-txt">${parsed.caption||''}</div><div style="margin-top:8px;">${(parsed.hashtags||[]).map(h=>`<span class="hashtag">#${h.replace('#','')}</span>`).join('')}</div></div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-primary" style="flex:1;" onclick="P('create',null)">✨ Tạo video từ kịch bản này</button>
+          <button class="btn btn-ghost" onclick="P('capcut',null)">🎬 Hướng dẫn CapCut</button>
+        </div>
+      </div>`;
+  }catch(e){
+    document.getElementById('script-out').innerHTML='<div style="color:var(--coral);padding:20px;text-align:center;font-size:13px;">Lỗi AI. Thử lại nhé!</div>';
+  }
+  document.getElementById('sl').classList.remove('show');
+}
+function copyScript(){
+  const texts=Array.from(document.querySelectorAll('.script-txt')).map(e=>e.innerText).filter(Boolean).join('\n\n');
+  navigator.clipboard.writeText(texts).then(()=>N('📋 Đã copy kịch bản!'));
+}
+
+// ─── INIT ────────────────────────────────────────────────
+document.getElementById('tr-date').value=new Date().toISOString().split('T')[0];
+renderQueue(document.getElementById('dash-queue'),3);
+</script>
+</body>
+</html>
